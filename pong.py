@@ -86,8 +86,8 @@ def repeat():
     y -= ball.imag
 
     # Graaaavityyy no escape from graaavityyy
-    ball -= 0.9j
-    v, alpha = cmath.polar(ball)
+#    ball -= 0.9j
+#    v, alpha = cmath.polar(ball)
 
     if x < r:
         x = r
@@ -99,9 +99,9 @@ def repeat():
     if y < r:
         y = r                                                       
         alpha = (2 * math.pi) - alpha
-    elif y > size[1] - 4*r:
-        y = size[1] - 4*r - 2
-        v -= 5
+    elif y > size[1] - r:
+        y = size[1] - r - 2
+#        v -= 5
         alpha = (2 * math.pi) - alpha
 
     cv.Threshold(bw, thresholded, 50, 128, cv.CV_THRESH_BINARY_INV)
