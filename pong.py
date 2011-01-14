@@ -2,6 +2,7 @@ import cv
 import math
 from opencv import highgui
 import cmath
+import random
 
 cv.NamedWindow("w1", cv.CV_WINDOW_AUTOSIZE)
 capture = cv.CaptureFromCAM(0)
@@ -43,19 +44,19 @@ def DiffLessThanPi(a, b):
 
 def GetCollision(x, y, r, data, size):
     points = ((x-r,y-r), (x, y-r), (x+r, y-r),
-              (x-r, y),  (x, y),   (x+r, y),
+              (x-r, y),  (-1, -1),   (x+r, y),
               (x-r, y+r),(x, y+r), (x+r, y+r))
     
     npoints = 0
     sumangles = 0                                                                                                         
+    allpoints = 0
 
     for point, angle in zip(points, angles):
-        if angle < 1:
-            continue
         px = int(point[0])
         py = int(point[1])
         if px < 0 or px >= size[0] or py < 0 or py >= size[1]:
             continue
+        allpoints += 1
         if ord(data[px + size[0]*py]) > 0:
             npoints += 1
             sumangles += angle
@@ -64,7 +65,14 @@ def GetCollision(x, y, r, data, size):
     if npoints > 0:
         ang = sumangles / npoints
     print r, npoints, Degrees(ang)
-    return (sumangles, npoints)
+    return (sumangles, npoints, allpoints)
+
+def BallTrapped(bw):
+    print "RUN PEDOBAER! ITS A TRAP!"
+    global x, y
+    size = cv.GetSize(bw)
+    x = random.randint(0, size[0] - 1)
+    y = random.randint(0, size[1] - 1)
 
 def DrawVector(img, center, alpha, length=15, thickness=2):
     dx = int(length * math.cos(alpha))
@@ -83,7 +91,11 @@ median_color = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 3)
 def repeat():
     global x, y, v, alpha, r
     frame = cv.QueryFrame(capture)
+
+    # Odwroc w poziomie zeby ludziom wydawalo sie ze sa w lustrze
     cv.Flip(frame, None, 1)
+
+    # informacje o kolorach raczej sie nie przydadza
     cv.CvtColor(frame, bw, cv.CV_BGR2GRAY)
 
     size = cv.GetSize(frame)
@@ -117,12 +129,12 @@ def repeat():
 
     data = median.tostring()
 
-    (sumangles, npoints) = GetCollision(x, y, r, data, size)
+    (sumangles, npoints, allpoints) = GetCollision(x, y, r, data, size)
 
     angle = 666
 
     # jest kolizja, jest zabawa
-    if npoints > 0 and npoints < 7:
+    if npoints > 0 and npoints < allpoints:
         # angle - kat normalnej do powierzchni kolizji
         angle = sumangles / npoints
         newalpha = ((2 * angle) - alpha) 
@@ -141,17 +153,19 @@ def repeat():
 #        v = 0.5 * v + 0.5 * nv
         x += v * math.cos(alpha)
         y -= v * math.sin(alpha)
-    elif npoints >= 7:
+    elif npoints >= allpoints - 1:
         print "ESCALATION"
-        (sumangles, npoints) = GetCollision(x, y, 4*r, data, size)
-        if npoints > 0 and npoints < 7:
+        (sumangles, npoints, allpoints) = GetCollision(x, y, 4*r, data, size)
+        if npoints > 0 and npoints < allpoints - 1:
             alpha = (sumangles / npoints)
             v = 15
-        elif npoints >= 7:
-            (sumangles, newpoints) = GetCollision(x, y, 8*r, data, size)
-            if npoints > 0:
+        elif npoints >= allpoints - 1:
+            (sumangles, newpoints, allpoints) = GetCollision(x, y, 8*r, data, size)
+            if npoints > 0 and npoints < allpoints / 2:
                 alpha = (sumangles / npoints)
                 v = 15
+            else:
+                BallTrapped(median)
         
     alpha = NormalizeAngle(alpha)
 
@@ -162,9 +176,8 @@ def repeat():
     if angle <> 666:
         DrawVector(out, (int(x), int(y)), angle, 20, 1)
 
+    # Wyswietlamy overlay z mapa kolizji
     cv.CvtColor(median, median_color, cv.CV_GRAY2BGR)
-    print out
-
     cv.AddWeighted(out, 0.9, median_color, 0.2, 0.0, out)
 
 #    cv.ShowImage("w1", frame)
