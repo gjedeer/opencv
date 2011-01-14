@@ -72,13 +72,19 @@ def DrawVector(img, center, alpha, length=15, thickness=2):
 
     cv.Line(img, center, (center[0]+dx, center[1]+dy), 0, 2)
 
+
+# image buffers - to avoid reallocation
+frame = cv.QueryFrame(capture)
+bw = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
+thresholded = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
+median = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
+median_color = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 3)
+
 def repeat():
     global x, y, v, alpha, r
     frame = cv.QueryFrame(capture)
     cv.Flip(frame, None, 1)
-    bw = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
     cv.CvtColor(frame, bw, cv.CV_BGR2GRAY)
-    thresholded = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
 
     size = cv.GetSize(frame)
     ball = cmath.rect(v, alpha)
@@ -107,12 +113,9 @@ def repeat():
     cv.Threshold(bw, thresholded, 50, 128, cv.CV_THRESH_BINARY_INV)
 #    cv.Threshold(bw, thresholded, 128, 128, cv.CV_THRESH_BINARY)
 
-    thresholded_median = cv.CreateImage(cv.GetSize(frame), cv.IPL_DEPTH_8U, 1)
-    cv.Smooth(thresholded, thresholded_median, cv.CV_MEDIAN, 9)
+    cv.Smooth(thresholded, median, cv.CV_MEDIAN, 9)
 
-    thresholded = thresholded_median
-
-    data = thresholded.tostring()
+    data = median.tostring()
 
     (sumangles, npoints) = GetCollision(x, y, r, data, size)
 
@@ -152,19 +155,21 @@ def repeat():
         
     alpha = NormalizeAngle(alpha)
 
-    out = thresholded
+    out = median
     out = frame
     cv.Circle(out, (int(x), int(y)), r, 255, -1)
     DrawVector(out, (int(x), int(y)), alpha)
     if angle <> 666:
         DrawVector(out, (int(x), int(y)), angle, 20, 1)
 
-    cv.AddWeighted(out, 0.9, thresholded, 0.2, out, 0.0)
+    cv.CvtColor(median, median_color, cv.CV_GRAY2BGR)
+    print out
+
+    cv.AddWeighted(out, 0.9, median_color, 0.2, 0.0, out)
 
 #    cv.ShowImage("w1", frame)
         
     cv.ShowImage("w1", out)
-    print alpha
     c = highgui.cvWaitKey(5)
 
 
