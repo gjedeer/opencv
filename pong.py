@@ -67,8 +67,8 @@ def GetCollision(x, y, r, data, size):
     return (sumangles, npoints)
 
 def DrawVector(img, center, alpha, length=15, thickness=2):
-    dx = length * math.cos(alpha)
-    dy = -length * math.sin(alpha)
+    dx = int(length * math.cos(alpha))
+    dy = int(-length * math.sin(alpha))
 
     cv.Line(img, center, (center[0]+dx, center[1]+dy), 0, 2)
 
@@ -158,6 +158,8 @@ def repeat():
     DrawVector(out, (int(x), int(y)), alpha)
     if angle <> 666:
         DrawVector(out, (int(x), int(y)), angle, 20, 1)
+
+    cv.AddWeighted(out, 0.9, thresholded, 0.2, out, 0.0)
 
 #    cv.ShowImage("w1", frame)
         
